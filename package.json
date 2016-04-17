@@ -1,0 +1,12 @@
+{
+  "name": "connected-bots",
+  "private": true,
+  "scripts": {
+    "start": "meteor run"
+  },
+  "dependencies": {
+    "googleapis": "^5.0.0",
+    "meteor-node-stubs": "~0.2.0",
+    "node-telegram-bot-api": "0.21.1"
+  }
+}

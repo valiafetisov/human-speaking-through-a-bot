@@ -1,0 +1,14 @@
+{
+
+  "telegram": {
+    "administrators": ["your_user_id"],
+    "client": "your_token_of_a_public_bot",
+    "admin": "your_token_of_a_private_bot"
+  },
+
+  "cse": {
+    "cx": "your_custom_search_engine_cx",
+    "key": "your_custom_search_engine_api_key"
+  }
+
+}
