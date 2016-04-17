@@ -5,6 +5,11 @@
 `single` branch has a realisation of single bot being public and private at the same time using login/logout sistem for administrators.
 
 
+### Technikal information
+
+Project made using [meteor.js](http://meteor.com) and [telegram](https://telegram.me) [forcereply feature](https://core.telegram.org/bots/api#forcereply) and ability of telegram reply directly to user message. Build using [node-telegram-bot-api](https://github.com/yagop/node-telegram-bot-api) npm package.
+
+
 ### Quick start
 
 1. `cd` to a project folder
