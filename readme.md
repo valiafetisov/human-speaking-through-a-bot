@@ -2,10 +2,10 @@
 
 "Human speaking through a bot" is a proof-of-concept of a two chat bots logically connected with each other. One is a public and receive messages from everyone, second is private and forward messages from all users talking with a public one. Most importantly, private bot can forward messages back to a specific user of public bot. So the user would talk with an administrator through a bot identity.
 
-`single` branch has a realisation of single bot being public and private at the same time using login/logout sistem for administrators.
+[`single`](https://github.com/valiafetisov/human-speaking-through-a-bot/tree/single) branch has a realisation of single bot being public and private at the same time using login/logout sistem for administrators.
 
 
-### Technikal information
+### Technical information
 
 Project made using [meteor.js](http://meteor.com) and [telegram](https://telegram.me) [forcereply feature](https://core.telegram.org/bots/api#forcereply) and ability of telegram reply directly to user message. Build using [node-telegram-bot-api](https://github.com/yagop/node-telegram-bot-api) npm package.
 
