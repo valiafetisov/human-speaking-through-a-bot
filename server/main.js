@@ -9,7 +9,6 @@ Messages = new Mongo.Collection("messages");
 //
 import { Meteor } from 'meteor/meteor';
 import TelegramBot from 'node-telegram-bot-api';
-import google from 'googleapis';
 
 
 //
@@ -17,23 +16,6 @@ import google from 'googleapis';
 //
 const telegramClient = new TelegramBot(Meteor.settings.telegram.client, {polling: true});
 const telegramAdmin = new TelegramBot(Meteor.settings.telegram.admin, {polling: true});
-
-
-//
-// initialize google search function
-// @param {String} word to search
-// @param {Function} callback with items {Array} as a single param
-//
-function googleSearch(text, callback) {
-  google.customsearch('v1').cse.list({
-    cx: Meteor.settings.cse.cx,
-    auth: Meteor.settings.cse.key,
-    q: text
-  }, Meteor.bindEnvironment(function(err, res){
-    if(err) throw new Error(err);
-    return callback(res.items);
-  }));
-}
 
 
 //
@@ -48,22 +30,12 @@ function telegram_onmessage_callback(msg) {
   previousId = msg.chat.id+'-'+msg.message_id;
 
   // check if it's a question or not
-  if(msg.text !== undefined && msg.text.indexOf('?') > 0 || process.env.NODE_ENV === "development") {
-
+  // if(msg.text !== undefined && msg.text.indexOf('?') > 0 || process.env.NODE_ENV === "development") {
     sendToAdministrators(msg);
+  // } else {
+  //   // do something else if not
+  // }
 
-  } else {
-
-    googleSearch(msg.text, function(items) {
-      if(items !== undefined && items.length >= 0){
-        sentToClient(msg.chat.id, _.sample(["ok, i got it", "here it is", "hmm, is it what you were looking for?", "that's it:"]));
-        sentToClient(msg.chat.id, items[0].link);
-      } else {
-        sentToClient(msg.chat.id, _.sample(["sorry, nothing found", "oh, nothing like this", "can't find it", "hmm, seems like there are nothing like this"]));
-      }
-    });
-
-  }
 }
 
 

@@ -10,5 +10,6 @@
 1. `cd` to a project folder
 2. `cp configurations/settings-example.json configurations/settings.json`
 3. obtain two bot tokens from a [@BotFather](https://telegram.me/botfather)
-4. edit `settings.json` and paste there those tokens and your user_id
+4. edit `settings.json` and paste there those tokens
+5. install dependencies `meteor npm install`
 5. `meteor run --settings configurations/settings.json`
