@@ -2,6 +2,7 @@
 // Define a collection
 //
 Messages = new Mongo.Collection("messages");
+Users = new Mongo.Collection("users");
 
 
 //
@@ -9,61 +10,73 @@ Messages = new Mongo.Collection("messages");
 //
 import { Meteor } from 'meteor/meteor';
 import TelegramBot from 'node-telegram-bot-api';
-import google from 'googleapis';
 
 
 //
 // initialize telegram api
 //
-const telegramClient = new TelegramBot(Meteor.settings.telegram.client, {polling: true});
-const telegramAdmin = new TelegramBot(Meteor.settings.telegram.admin, {polling: true});
-
-
-//
-// initialize google search function
-// @param {String} word to search
-// @param {Function} callback with items {Array} as a single param
-//
-function googleSearch(text, callback) {
-  google.customsearch('v1').cse.list({
-    cx: Meteor.settings.cse.cx,
-    auth: Meteor.settings.cse.key,
-    q: text
-  }, Meteor.bindEnvironment(function(err, res){
-    if(err) throw new Error(err);
-    return callback(res.items);
-  }));
-}
+const telegram = new TelegramBot(Meteor.settings.telegram.client, {polling: true});
 
 
 //
 // callback on a new client message
 //
-telegramClient.on('message', Meteor.bindEnvironment(telegram_onmessage_callback));
+telegram.on('message', Meteor.bindEnvironment(telegram_onmessage_callback));
 var previousId; // check if we already answered
 function telegram_onmessage_callback(msg) {
-  // console.log('telegramClient:', msg);
+  console.log('telegram_onmessage_callback:', msg);
 
   if(previousId == msg.chat.id+'-'+msg.message_id) return;
   previousId = msg.chat.id+'-'+msg.message_id;
 
+  if(msg.text === undefined) return;
+
   // check if it's a question or not
-  if(msg.text !== undefined && msg.text.indexOf('?') > 0 || process.env.NODE_ENV === "development") {
-
-    sendToAdministrators(msg);
-
+  if(msg.text == "/login") {
+    updateUser(msg, 'login');
+  } else if(msg.text == "/logout") {
+    updateUser(msg, 'logout');
   } else {
-
-    googleSearch(msg.text, function(items) {
-      if(items !== undefined && items.length >= 0){
-        sentToClient(msg.chat.id, _.sample(["ok, i got it", "here it is", "hmm, is it what you were looking for?", "that's it:"]));
-        sentToClient(msg.chat.id, items[0].link);
-      } else {
-        sentToClient(msg.chat.id, _.sample(["sorry, nothing found", "oh, nothing like this", "can't find it", "hmm, seems like there are nothing like this"]));
-      }
-    });
-
+    const user = getUser(msg);
+    if(user.isAdmin) {
+      forwardToClient(msg);
+    } else {
+      sendToAdministrators(msg);
+    }
   }
+}
+
+
+function createUserObject(msg) {
+  if(msg === undefined) return;
+  return {userId: msg.from.id, chatId: msg.chat.id, name: msg.from.first_name};
+}
+
+
+function updateUser(msg, flag) {
+  const user = Users.findOne({userId: msg.from.id});
+  const userObj = chreateUserObject(msg);
+  if(flag === 'login') {
+    userObj.isAdmin = true;
+  } else if(flag === 'logout') {
+    userObj.isAdmin = false;
+  }
+  if(user === undefined){
+    Users.insert(userObj);
+  } else {
+    Users.update(user._id, {$set: userObj});
+  }
+}
+
+
+function getUser(msg) {
+  const user = Users.findOne({userId: msg.from.id});
+  if(user !== undefined) return user;
+
+  const userObj = chreateUserObject(msg);
+  const id = Users.insert(userObj);
+  userObj._id = id;
+  return userObj;
 }
 
 
@@ -71,11 +84,14 @@ function telegram_onmessage_callback(msg) {
 // forward message to Administrators
 //
 function sendToAdministrators(msg) {
-  if(Meteor.settings.telegram.administrators === undefined) return;
-  Meteor.settings.telegram.administrators.forEach(function(chat_id){
+  const admins = Users.find({isAdmin: true}).fetch();
+  console.log('sendToAdministrators', admins, msg);
+  if(admins === undefined || admins.length <= 0) throw new Meteor.Error('there are no admins');
+
+  admins.forEach(function(each){
 
     const text = "<i>"+msg.from.first_name+"</i>:\n"+msg.text;
-    telegramAdmin.sendMessage(chat_id, text, {parse_mode: "HTML", reply_markup: {force_reply: true}})
+    telegram.sendMessage(each.chatId, text, {parse_mode: "HTML", reply_markup: {force_reply: true}})
     .then(Meteor.bindEnvironment(function(response){
       // console.log('msg', msg, 'response', response);
       Messages.insert({msg: msg, sent: response, chat: "admin"});
@@ -88,27 +104,19 @@ function sendToAdministrators(msg) {
 //
 // callback on a new Administrator message
 //
-telegramAdmin.on('message', Meteor.bindEnvironment(function(msg){
+function forwardToClient(msg){
   if (msg.reply_to_message === undefined) return;
   messageOfReply = Messages.findOne({'sent.message_id': msg.reply_to_message.message_id, chat: "admin"});
   if(messageOfReply === undefined) return;
   // console.log('messageOfReply', messageOfReply);
-  sentToClient(messageOfReply.msg.chat.id, msg.text);
-}));
-
-
-//
-// send to Client
-//
-function sentToClient(chatId, text) {
-  sendMessage(telegramClient, chatId, text);
+  sendMessage(messageOfReply.msg.chat.id, msg.text);
 }
 
 
 //
 // send a message
 //
-function sendMessage(telegram, chatId, message) {
+function sendMessage(chatId, message) {
   telegram.sendChatAction(chatId, 'typing');
   Meteor.setTimeout(function(){
     telegram.sendMessage(chatId, message);
